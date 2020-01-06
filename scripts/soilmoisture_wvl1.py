@@ -28,7 +28,7 @@ from matplotlib import colors
 import seaborn as sns
 from mpl_toolkits.basemap import Basemap
 import matplotlib as mlp
-
+from scipy import stats
 
 
 # READING NETCDF FILES
@@ -528,6 +528,8 @@ def compositemaps(analysis):
         
     return 
 
+# RUNNING STATISTICAL TEST
+
 def dataset4test():
     """
     Creates datasets of variables with each index representing the value from a different group
@@ -536,25 +538,54 @@ def dataset4test():
     august_c1_dominated, august_c3_dominated, august_neither_dominated]
     
     """
-    Julys, Augusts = [], [], [], []
+    Julys, Augusts = [], []
+    all_months_grps = []
     groups = [july_c1_dominated, july_c3_dominated, july_neither_dominated, august_c1_dominated, august_c3_dominated, august_neither_dominated]
-    for group in groups:    
+    for group in groups:
+        all_months = []
         year = np.multiply(np.subtract(group,1979),3)
         indx_july = np.add(1, year)
         indx_august = np.add(2, year)
-        #print(np.isnan(June).any())
         July = dataset_wl1_map.swvl1[indx_july,:,:].values 
         July = np.ndarray.flatten(July)
-        #print(np.isnan(July).any())
+        all_months.append(July)
         August = dataset_wl1_map.swvl1[indx_august,:,:].values
         August = np.ndarray.flatten(August)
-        #print(np.isnan(August).any())
+        all_months.append(August)
+        all_months = np.ndarray.flatten(np.asarray(all_months))
         Julys.append(July), Augusts.append(August)
-    return np.asarray(Julys), np.asarray(Augusts)
+        all_months_grps.append(all_months)
+    return np.asarray(Julys), np.asarray(Augusts), np.asarray(all_months_grps)
 
 
-# RUNNING STATISTICAL TEST
+def run_ttest(variable):
+    """
+    Runs two sided t-test comparing a dataset of all months
+    """
+    print("Running t-test\n")
+    result = []
+    print("DJ-July dominated years vs SJ-July dominated years")
+    t1, p1 = stats.ttest_ind(variable[0],variable[1],axis = 0, equal_var = True)
+    result.append([t1,p1])
+    print("SJ-July dominated years vs N-July dominated years")
+    t2, p2 = stats.ttest_ind(variable[1],variable[2],axis = 0, equal_var = True)
+    result.append([t2,p2])
+    print("N-July dominated years vs DJ-July dominated years")
+    t3, p3 = stats.ttest_ind(variable[2],variable[0],axis = 0, equal_var = True)    
+    result.append([t3,p3])
     
+    print("DJ-August dominated years vs SJ-August dominated years")
+    t4, p4 = stats.ttest_ind(variable[3],variable[4],axis = 0, equal_var = True)
+    result.append([t4,p4])
+    print("SJ-August dominated years vs N-August dominated years")
+    t5, p5 = stats.ttest_ind(variable[4],variable[5],axis = 0, equal_var = True)
+    result.append([t5,p5])
+    print("N-August dominated years vs DJ-August dominated years")    
+    t6, p6 = stats.ttest_ind(variable[5],variable[3],axis = 0, equal_var = True)    
+    result.append([t6,p6])
+    
+    return result
+
 """
 Climatology plot completed.
 Only remaining section is running statistical test
@@ -563,6 +594,7 @@ and standard deviation in composites, importing list of each relevant year.
 
     
 if __name__ == "__main__":
+    print("Soil Moisture Analysis")
     dataset_wl1_map, dataset_wl1_zonal = read_data()
     
     #climatology("mean")
@@ -574,20 +606,47 @@ if __name__ == "__main__":
     #compositemaps('mean')
     #compositemaps('std')
     
-    Julys, Augusts = dataset4test()
+    Julys, Augusts, all_months = dataset4test()
+    
+    results = np.round(run_ttest(all_months), 3)
+    print("T value   P Value")
+    print(results[0])
+    print(results[1])
+    print(results[2])
+    print(results[3])
+    print(results[4])
+    print(results[5])
+# =============================================================================
+#     print(Julys[0].shape, Augusts[0].shape, all_months[0].shape)
+#     
+#     plt.figure()
+#     plt.title("SM Julys of DJ-July dom")
+#     sns.distplot(Julys[0], hist=False)
+#     plt.figure()
+#     plt.title("SM Augusts of SJ-July dom")
+#     sns.distplot(Julys[1], hist=False)
+#     plt.figure()
+#     plt.title("SM Julys and Augusts of DJ-July dom")
+#     sns.distplot(all_months[0])
+#     plt.show()
+# =============================================================================
+    
     #print(np.isnan(Mays).any())
     #print(np.isnan(Junes).any())
     #print(np.isnan(Julys).any())
     #print(np.isnan(Augusts).any())
-    variables = [Julys, Augusts]
-    months_list = ["July", "August"]
-    indx = 0
-    ttest_results = []
-    #anova_results = []
-    for var in variables:
-        print("Statistical Test for %s" %(months_list[indx]))
-        res = run_ttest(var)
-        ttest_results.append(res)
-#        res = run_anova(var)
-#        anova_results.append(res)
-        indx += 1
+#    variables = [Julys, Augusts]
+#    months_list = ["July", "August"]
+#    results = run_ttest(variables, months_list)
+#    print(results)
+#    
+#    indx = 0
+#    ttest_results = []
+#    #anova_results = []
+#    for var in variables:
+#        print("Statistical Test for %s" %(months_list[indx]))
+#        res = run_ttest(var)
+#        ttest_results.append(res)
+##        res = run_anova(var)
+##        anova_results.append(res)
+#        indx += 1

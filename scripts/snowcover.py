@@ -773,7 +773,7 @@ def dataset4test():
     return np.asarray(Mays), np.asarray(Junes), np.asarray(Julys), np.asarray(Augusts), np.asarray(all_months_grps)
 
 # RUNNING STATISTICAL TEST
-def run_ttest(var):
+def run_ttest_monthly(var):
     """
     Running DJ dominated(July and August) years to SJ(July and August) dominated years   
     Index order of variable:
@@ -821,6 +821,34 @@ def run_ttest(var):
     return [t_j_1, p_j_1, t_a_1, p_a_1, t_j_2, p_j_2, t_a_2, p_a_2, t_j_3, p_j_3, t_a_3, p_a_3]
 
 
+def run_ttest(variable):
+    """
+    Runs two sided t-test comparing a dataset of all months
+    """
+    print("Running t-test\n")
+    result = []
+    print("DJ-July dominated years vs SJ-July dominated years")
+    t1, p1 = stats.ttest_ind(variable[0],variable[1],axis = 0, equal_var = True)
+    result.append([t1,p1])
+    print("SJ-July dominated years vs N-July dominated years")
+    t2, p2 = stats.ttest_ind(variable[1],variable[2],axis = 0, equal_var = True)
+    result.append([t2,p2])
+    print("N-July dominated years vs DJ-July dominated years")
+    t3, p3 = stats.ttest_ind(variable[2],variable[0],axis = 0, equal_var = True)    
+    result.append([t3,p3])
+    
+    print("DJ-August dominated years vs SJ-August dominated years")
+    t4, p4 = stats.ttest_ind(variable[3],variable[4],axis = 0, equal_var = True)
+    result.append([t4,p4])
+    print("SJ-August dominated years vs N-August dominated years")
+    t5, p5 = stats.ttest_ind(variable[4],variable[5],axis = 0, equal_var = True)
+    result.append([t5,p5])
+    print("N-August dominated years vs DJ-August dominated years")    
+    t6, p6 = stats.ttest_ind(variable[5],variable[3],axis = 0, equal_var = True)    
+    result.append([t6,p6])
+    
+    return result
+
 
 def run_anova(var):
     """
@@ -849,6 +877,7 @@ def run_anova(var):
 
     
 if __name__ == "__main__":
+    print("Snow Cover Analysis")
     all_springs = read_data()
     #climatology("mean")
     #climatology("std")
@@ -859,42 +888,54 @@ if __name__ == "__main__":
     #compositemaps('mean')
     #compositemaps('std')
     
-    print("July")
-    print("DJ")
-    print(july_c1_dominated)
-    print("SJ")
-    print(july_c3_dominated)
-    print("Neither")
-    print(july_neither_dominated)
-    
-    print("August")
-    print("DJ")
-    print(august_c1_dominated)
-    print("SJ")
-    print(august_c3_dominated)
-    print("Neither")
-    print(august_neither_dominated)
-    
+       
     Mays, Junes, Julys, Augusts, all_months = dataset4test()
-    print(len(Mays[0]), Mays[0].shape)
-    print(len(all_months[0]), all_months[0].shape)
-    #print(np.isnan(Mays).any())
+    
+    results = np.round(run_ttest(all_months), 3)
+    print("T value   P Value")
+    print(results[0])
+    print(results[1])
+    print(results[2])
+    print(results[3])
+    print(results[4])
+    print(results[5])
+# =============================================================================
+#     print(len(Mays[0]), Mays[0].shape)
+#     print(len(all_months[0]), all_months[0].shape)
+#     plt.figure()
+#     plt.title("SNC Mays of DJ-July dom")
+#     sns.distplot(Mays[0], hist=False)
+#     plt.figure()
+#     plt.title("SNC Junes of DJ-July dom")
+#     sns.distplot(Junes[0], hist=False)
+#     plt.figure()
+#     plt.title("SNC Julys of DJ-July dom")
+#     sns.distplot(Julys[0], hist=False)
+#     plt.figure()
+#     plt.title("SNC Augusts of DJ-July dom")
+#     sns.distplot(Augusts[0], hist=False)
+#     plt.figure()
+#     plt.title("SNC Julys and Augusts of DJ-July dom")
+#     sns.distplot(all_months[0], hist=False)
+#     plt.show()
+#     #print(np.isnan(Mays).any())
+# =============================================================================
     #print(np.isnan(Junes).any())
     #print(np.isnan(Julys).any())
     #print(np.isnan(Augusts).any())
-    variables = [Mays, Junes, Julys, Augusts, all_months]
-    
-    months_list = ["May", "June", "July", "August", "All_months"]
-    indx = 0
-    ttest_results = []
-    #anova_results = []
-    for var in variables:
-        print("\nStatistical Test for %s \n\n" %(months_list[indx]))
-        res = run_ttest(var)
-        ttest_results.append(res)
-#        res = run_anova(var)
-#        anova_results.append(res)
-        indx += 1
+#    variables = [Mays, Junes, Julys, Augusts, all_months]
+#    
+#    months_list = ["May", "June", "July", "August", "All_months"]
+#    indx = 0
+#    ttest_results = []
+#    #anova_results = []
+#    for var in variables:
+#        print("\nStatistical Test for %s \n\n" %(months_list[indx]))
+#        res = run_ttest(var)
+#        ttest_results.append(res)
+##        res = run_anova(var)
+##        anova_results.append(res)
+#        indx += 1
         
     
     
