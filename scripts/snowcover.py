@@ -24,6 +24,7 @@ import pandas as pd
 from mpl_toolkits.basemap import Basemap
 import seaborn as sns
 import matplotlib as mlp
+from matplotlib.colors import DivergingNorm
 
 # SNOW COVER RELATED
 
@@ -113,8 +114,10 @@ def makePlots(months, title, months_list, colorbar_title, vmin, vmax, vn, color,
     """
     print("Plotting in progress")
     ticks = np.round(np.linspace(vmin,vmax,vn), rnd)
+    
     color = plt.cm.get_cmap(color, vn-1)
-    color.set_bad(color='white')
+    #print(len(color))
+    color.set_bad(color='yellow')
     # plotting parameters
     parallels = np.arange(0,90,10.)
     meridians = np.arange(0.,360.,30.)
@@ -124,18 +127,18 @@ def makePlots(months, title, months_list, colorbar_title, vmin, vmax, vn, color,
         plt.figure()
         mp = draw_map()
         plt.title("%s for %s (1979-2018)" %(title, months_list[indx]), y=1.08, fontsize=17)
-        mp.imshow(month, origin = 'lower', cmap = color, vmin = vmin, vmax = vmax)
+        mp.imshow(month, origin = 'lower', norm=DivergingNorm(0), cmap = color, vmin = vmin, vmax = vmax)
         cbar = mp.colorbar(pad=0.6, ticks=ticks)
         cbar.ax.set_ylabel(colorbar_title, fontsize=14)
         #mp.drawlsmask(land_color='firebrick',ocean_color='aqua', lakes=True, alpha=0.3)
-        mp.drawlsmask(land_color=lndclr,ocean_color='white', lakes=True, alpha=0.3)
+        mp.drawlsmask(land_color=lndclr,ocean_color='white', lakes=True, alpha=0.2)
         mp.drawparallels(parallels, labels = [0,0,0,0])
         mp.drawmeridians(meridians, labels = [1,1,1,1])
         indx += 1
     plt.show()
 
 # MAKING TREND MAPS PLOTS
-def makeCompositeplots(months, sup_title, subtitles, colorbar_title, vmin, vmax, vn, rnd, color):
+def makeCompositeplots(months, sup_title, subtitles, colorbar_title, vmin, vmax, vn, rnd, color):#, res=1):
     # Plotting the Composite Maps
 
     # July-c1 dominated years
@@ -151,26 +154,28 @@ def makeCompositeplots(months, sup_title, subtitles, colorbar_title, vmin, vmax,
         mp=draw_map()
         plt.subplot(2,2,i+1)
         plt.title(subtitles[i], y=1.08, fontsize=17)
-        mp.imshow(month, vmax = vmax, vmin = vmin, origin = 'lower', cmap = color)
-        #mp.colorbar(pad=0.6, ticks = ticks)
-        mp.drawlsmask(land_color='gray',ocean_color='white', lakes=True, alpha=0.3)
+        mp.imshow(month, norm = DivergingNorm(0.05), vmax = vmax, vmin = vmin, origin = 'lower', cmap = color)
+        #mp.drawcoastlines()
+        mp.colorbar(pad=0.6, ticks = ticks)
+        mp.drawlsmask(land_color='gray', ocean_color='white', lakes=True, alpha=0.1)
         mp.drawparallels(parallels, labels = [0,0,0,0])
         mp.drawmeridians(meridians, labels = [1,1,1,1])
+        #mp.drawmapboundary(color='black')
         i+=1
         
     plt.subplots_adjust(left = 0.1, bottom=0.1, right=0.8, top=0.85, hspace = 0.3)
     #[left, bottom, width, height]
     cax = plt.axes([0.83, 0.1, 0.01, 0.75])
-    #res = vn
+    res = vn
 # =============================================================================
-#     t_s = ticks[0::res]
-#     if t_s[-1]==ticks[-1]:
-#         cbar = plt.colorbar(cax=cax, orientation = "vertical", ticks=t_s)
-#     else:
-#         cbar = plt.colorbar(cax=cax, orientation = "vertical", ticks=ticks[1:-1:res])
+#    t_s = ticks[0::res]
+#    if t_s[-1]==ticks[-1]:
+#        cbar = plt.colorbar(cax=cax, orientation = "vertical", ticks=t_s)
+#    else:
+#        cbar = plt.colorbar(cax=cax, orientation = "vertical", ticks=ticks[1:-1:res])
 # =============================================================================
-    cbar = plt.colorbar(cax=cax, orientation = "vertical", ticks=ticks)
-    cbar.ax.set_ylabel(colorbar_title, fontsize=14)
+    #cbar = plt.colorbar(cax=cax, orientation = "vertical", ticks=ticks[0::res])
+#    cbar.ax.set_ylabel(colorbar_title, fontsize=14)
     plt.show()
     
     return
@@ -324,7 +329,7 @@ def anomalymaps():
     vmin = -0.8
     vn = 12
     rnd = 3
-    color = 'seismic'
+    color = 'Spectral'
     title = "Northern Hemisphere Snowcover - Anomaly Map"
     colorbar_title = "Difference between the mean snowcover extent of 1979-1998 and 1999-2018"
     makePlots(months, title, months_list, colorbar_title, vmin, vmax, vn, color, rnd)
@@ -727,179 +732,195 @@ def compositemaps(analysis):
         return
     
     
+def p_value_maps():
     """
-    Only remaining section is running statistical test
-    and standard deviation in composites, importing list of each relevant year.
-    and plots for composite maps
-    """ 
+    This function in intended to produce a p value map comparing July of C1 dominated July
+    """
+    # creating the comparison datasets
+    
+        # july_c1_dominated:
+    year = np.multiply(np.subtract(july_c1_dominated,1979),6)
+    indx_may = np.add(2, year)
+    indx_june = np.add(3, year)
+    indx_july = np.add(4, year)
+    indx_august = np.add(5, year)
+    May_jc1 = all_springs.snow_cover[indx_may,:,:].values 
+    June_jc1 = all_springs.snow_cover[indx_june,:,:].values
+    July_jc1 = all_springs.snow_cover[indx_july,:,:].values 
+    August_jc1 = all_springs.snow_cover[indx_august,:,:].values
+                
+        # july_c3_dominated:
+    year = np.multiply(np.subtract(july_c3_dominated,1979),6)
+    indx_may = np.add(2, year)
+    indx_june = np.add(3, year)
+    indx_july = np.add(4, year)
+    indx_august = np.add(5, year)
+    May_jc3 = all_springs.snow_cover[indx_may,:,:].values 
+    June_jc3 = all_springs.snow_cover[indx_june,:,:].values
+    July_jc3 = all_springs.snow_cover[indx_july,:,:].values 
+    August_jc3 = all_springs.snow_cover[indx_august,:,:].values
+    
+    
+        # july_neither_dominated:
+    year = np.multiply(np.subtract(july_neither_dominated,1979),6)
+    indx_may = np.add(2, year)
+    indx_june = np.add(3, year)
+    indx_july = np.add(4, year)
+    indx_august = np.add(5, year)
+    May_jn = all_springs.snow_cover[indx_may,:,:].values 
+    June_jn = all_springs.snow_cover[indx_june,:,:].values
+    July_jn = all_springs.snow_cover[indx_july,:,:].values 
+    August_jn = all_springs.snow_cover[indx_august,:,:].values
+     
+        # august_c1_dominated:
+    year = np.multiply(np.subtract(august_c1_dominated,1979),6)
+    indx_may = np.add(2, year)
+    indx_june = np.add(3, year)
+    indx_july = np.add(4, year)
+    indx_august = np.add(5, year)
+    May_ac1 = all_springs.snow_cover[indx_may,:,:].values 
+    June_ac1 = all_springs.snow_cover[indx_june,:,:].values
+    July_ac1 = all_springs.snow_cover[indx_july,:,:].values 
+    August_ac1 = all_springs.snow_cover[indx_august,:,:].values
+                
+        # august_c3_dominated:
+    year = np.multiply(np.subtract(august_c3_dominated,1979),6)
+    indx_may = np.add(2, year)
+    indx_june = np.add(3, year)
+    indx_july = np.add(4, year)
+    indx_august = np.add(5, year)
+    May_ac3 = all_springs.snow_cover[indx_may,:,:].values 
+    June_ac3 = all_springs.snow_cover[indx_june,:,:].values
+    July_ac3 = all_springs.snow_cover[indx_july,:,:].values 
+    August_ac3 = all_springs.snow_cover[indx_august,:,:].values
+        
+        # august_neither_dominated:
+    year = np.multiply(np.subtract(august_neither_dominated,1979),6)
+    indx_may = np.add(2, year)
+    indx_june = np.add(3, year)
+    indx_july = np.add(4, year)
+    indx_august = np.add(5, year)
+    May_an = all_springs.snow_cover[indx_may,:,:].values 
+    June_an = all_springs.snow_cover[indx_june,:,:].values
+    July_an = all_springs.snow_cover[indx_july,:,:].values 
+    August_an = all_springs.snow_cover[indx_august,:,:].values
+    
+    # DJ-J vs SJ-J
+    May_jc1c3 = run_studenttest1(May_jc1, May_jc3)
+    June_jc1c3 = run_studenttest1(June_jc1, June_jc3)
+    
+    July_jc1c3 = run_studenttest1(July_jc1, July_jc3)
+    August_jc1c3 = run_studenttest1(August_jc1, August_jc3)
+    
+    # SJ-J vs NJ-J
+    May_jc3cn = run_studenttest1(May_jc3, May_jn)
+    June_jc3cn = run_studenttest1(June_jc3, June_jn)
+    
+    July_jc3cn = run_studenttest1(July_jc3, July_jn)
+    August_jc3cn = run_studenttest1(August_jc3, August_jn)
+    
+    # NJ-J vs DJ-J    
+    May_jcnc1 = run_studenttest1(May_jn, May_jc1)
+    June_jcnc1 = run_studenttest1(June_jn, June_jc1)
+    
+    July_jcnc1 = run_studenttest1(July_jn, July_jc1)
+    August_jcnc1 = run_studenttest1(August_jn, August_jc1)
+    
+    
+    # DJ-A vs SJ-A
+    May_ac1c3 = run_studenttest1(May_ac1, May_ac3)
+    June_ac1c3 = run_studenttest1(June_ac1, June_ac3)
+    
+    July_ac1c3 = run_studenttest1(July_ac1, July_ac3)
+    August_ac1c3 = run_studenttest1(August_ac1, August_ac3)
+    
+    # SJ-A vs NJ-A
+    May_ac3cn = run_studenttest1(May_ac3, May_an)
+    June_ac3cn = run_studenttest1(June_ac3, June_an)
+    
+    July_ac3cn = run_studenttest1(July_ac3, July_an)
+    August_ac3cn = run_studenttest1(August_ac3, August_an)
+    
+    # NJ-A vs DJ-A    
+    May_acnc1 = run_studenttest1(May_an, May_ac1)
+    June_acnc1 = run_studenttest1(June_an, June_ac1)
+    
+    July_acnc1 = run_studenttest1(July_an, July_ac1)
+    August_acnc1 = run_studenttest1(August_an, August_ac1)
+    
+    
+    # Plotting parameters
+    p_max, p_min, delta = 1, 0, 0.005
+    p_n = int(1/0.005)
+    colorbar_title = " "
+    color = 'seismic'
+    rnd = 2
+    # more Plotting parameters
+    title_DJSJ_J = "P value map from Student t-test (Years with domination of double jet in July vs years with domination of single jet in July)"
+    title_SJNJ_J = "P value map from Student t-test (Years with domination of single jet in July vs years with domination of neither jet in July)"
+    title_NJDJ_J = "P value map from Student t-test (Years with domination of neither jet in July vs years with domination of double jet in July)"
+    title_DJSJ_A = "P value map from Student t-test (Years with domination of double jet in August vs years with domination of single jet in August)"
+    title_SJNJ_A = "P value map from Student t-test (Years with domination of single jet in August vs years with domination of neither jet in August)"
+    title_NJDJ_A = "P value map from Student t-test (Years with domination of neither jet in August vs years with domination of double jet in August)"
+    
+    subtitles = ["May", "June", "July", "August"]
+    
+    #Plotting
+    
+    #Comparison of years in July-Domination
+    makeCompositeplots([May_jc1c3, June_jc1c3, July_jc1c3, August_jc1c3],title_DJSJ_J,subtitles,colorbar_title,p_min,p_max,p_n,rnd,color,res=8)#,color="Blues")
+    makeCompositeplots([May_jc3cn, June_jc3cn, July_jc3cn, August_jc3cn],title_SJNJ_J,subtitles,colorbar_title,p_min,p_max,p_n,rnd,color,res=8)
+    makeCompositeplots([May_jcnc1, June_jcnc1, July_jcnc1, August_jcnc1],title_NJDJ_J,subtitles,colorbar_title,p_min,p_max,p_n,rnd,color,res=8)
+    
+    #Comparison of years in August-Domination
+    makeCompositeplots([May_ac1c3, June_ac1c3, July_ac1c3, August_ac1c3],title_DJSJ_A,subtitles,colorbar_title,p_min,p_max,p_n,rnd,color,res=8)
+    makeCompositeplots([May_ac3cn, June_ac3cn, July_ac3cn, August_ac3cn],title_SJNJ_A,subtitles,colorbar_title,p_min,p_max,p_n,rnd,color,res=8)
+    makeCompositeplots([May_acnc1, June_acnc1, July_acnc1, August_acnc1],title_NJDJ_A,subtitles,colorbar_title,p_min,p_max,p_n,rnd,color,res=8)
+        
+    
+def run_studenttest1(dataset_1, dataset_2):
+    if len(dataset_1) > len(dataset_2):
+        indice = random.randint(0,14)
+        m_dataset_1 = np.delete(dataset_1,indice,0)
+        t, p = stats.ttest_rel(m_dataset_1, dataset_2, axis=0)
+    elif len(dataset_1) < len(dataset_2):
+        indice = random.randint(0,14)
+        m_dataset_2 = np.delete(dataset_2,indice,0)
+        t, p = stats.ttest_rel(dataset_1, m_dataset_2, axis=0)
+    else:
+        t, p = stats.ttest_rel(dataset_1, dataset_2, axis=0)
+    return p
+        
+    
+def run_studenttest2(dataset_1, dataset_2):
+    t, p = stats.ttest_ind(dataset_1, dataset_2, axis = 0, equal_var = True)
+    return p
 
-def dataset4test():
-    """
-    Creates datasets of variables with each index representing the value from a different group
-    Index order:
-    [july_c1_dominated, july_c3_dominated, july_neither_dominated, 
-    august_c1_dominated, august_c3_dominated, august_neither_dominated]
-    
-    """
-    Mays, Junes, Julys, Augusts = [], [], [], []
-    all_months_grps = []
-    groups = [july_c1_dominated, july_c3_dominated, july_neither_dominated, august_c1_dominated, august_c3_dominated, august_neither_dominated]
-    for group in groups:
-        all_months = []
-        year = np.multiply(np.subtract(group,1979),6)
-        indx_may = np.add(2, year)
-        indx_june = np.add(3, year)
-        indx_july = np.add(4, year)
-        indx_august = np.add(5, year)
-        May = all_springs.snow_cover[indx_may,:,:].values
-        May = np.ndarray.flatten(May)
-        all_months.append(May)
-        #print(np.isnan(May).any())
-        June = all_springs.snow_cover[indx_june,:,:].values
-        June = np.ndarray.flatten(June)
-        all_months.append(June)
-        #print(np.isnan(June).any())
-        July = all_springs.snow_cover[indx_july,:,:].values 
-        July = np.ndarray.flatten(July)
-        all_months.append(July)
-        #print(np.isnan(July).any())
-        August = all_springs.snow_cover[indx_august,:,:].values
-        August = np.ndarray.flatten(August)
-        all_months.append(August)
-        #print(np.isnan(August).any())
-        all_months = np.ndarray.flatten(np.asarray(all_months))
-        Mays.append(May), Junes.append(June), Julys.append(July)
-        Augusts.append(August), all_months_grps.append(all_months)
-    return np.asarray(Mays), np.asarray(Junes), np.asarray(Julys), np.asarray(Augusts), np.asarray(all_months_grps)
-
-# RUNNING STATISTICAL TEST
-def run_ttest_monthly(var):
-    """
-    Running DJ dominated(July and August) years to SJ(July and August) dominated years   
-    Index order of variable:
-    [july_c1_dominated, july_c3_dominated, july_neither_dominated, 
-    august_c1_dominated, august_c3_dominated, august_neither_dominated]
-    
-
-    """
-    print("Running t-test\n")
-    print("C1 vs C3 domination")
-    
-    print("Jet domination in July")
-    t_j_1, p_j_1 = stats.ttest_ind(var[0],var[1],axis = 0, equal_var = True)
-    print("t-value", "p-value")
-    print(t_j_1, p_j_1)
-    
-    print("Jet domination in August")
-    t_a_1, p_a_1 = stats.ttest_ind(var[3],var[4],axis = 0, equal_var = True)
-    print("t-value", "p-value")
-    print(t_a_1, p_a_1)
-    
-    print("\nC3 vs Neither domination")
-    
-    print("Jet domination in July")
-    t_j_2, p_j_2 = stats.ttest_ind(var[1],var[2],axis = 0, equal_var = True)
-    print("t-value", "p-value")
-    print(t_j_2, p_j_2)
-    
-    print("Jet domination in August")
-    t_a_2, p_a_2 = stats.ttest_ind(var[4],var[5],axis = 0, equal_var = True)
-    print("t-value", "p-value")
-    print(t_a_2, p_a_2)
-    
-    print("\nNeither vs C1 domination")
-    
-    print("Jet domination in July")
-    t_j_3, p_j_3 = stats.ttest_ind(var[2],var[0],axis = 0, equal_var = True)
-    print("t-value", "p-value")
-    print(t_j_3, p_j_3)
-    
-    print("Jet domination in August")
-    t_a_3, p_a_3 = stats.ttest_ind(var[5],var[3],axis = 0, equal_var = True)
-    print("t-value", "p-value")
-    print(t_a_3, p_a_3)
-    return [t_j_1, p_j_1, t_a_1, p_a_1, t_j_2, p_j_2, t_a_2, p_a_2, t_j_3, p_j_3, t_a_3, p_a_3]
-
-
-def run_ttest(variable):
-    """
-    Runs two sided t-test comparing a dataset of all months
-    """
-    print("Running t-test\n")
-    result = []
-    print("DJ-July dominated years vs SJ-July dominated years")
-    t1, p1 = stats.ttest_ind(variable[0],variable[1],axis = 0, equal_var = True)
-    result.append([t1,p1])
-    print("SJ-July dominated years vs N-July dominated years")
-    t2, p2 = stats.ttest_ind(variable[1],variable[2],axis = 0, equal_var = True)
-    result.append([t2,p2])
-    print("N-July dominated years vs DJ-July dominated years")
-    t3, p3 = stats.ttest_ind(variable[2],variable[0],axis = 0, equal_var = True)    
-    result.append([t3,p3])
-    
-    print("DJ-August dominated years vs SJ-August dominated years")
-    t4, p4 = stats.ttest_ind(variable[3],variable[4],axis = 0, equal_var = True)
-    result.append([t4,p4])
-    print("SJ-August dominated years vs N-August dominated years")
-    t5, p5 = stats.ttest_ind(variable[4],variable[5],axis = 0, equal_var = True)
-    result.append([t5,p5])
-    print("N-August dominated years vs DJ-August dominated years")    
-    t6, p6 = stats.ttest_ind(variable[5],variable[3],axis = 0, equal_var = True)    
-    result.append([t6,p6])
-    
-    return result
-
-
-def run_anova(var):
-    """
-    This a non parametric version of anova
-    Running DJ dominated(July and August) years vs SJ dominated(July and August) years 
-    vs Neither dominated(July and August) years   
-    
-    Will only be using it if I have time left.
-    """
-    print("Running ANOVA")
-    
-    print("Jet domination in July")
-    S_j, P_j = stats.f_oneway(var[0],var[1],var[2])
-    
-    print("Jet domination in August")
-    S_a, P_a = stats.f_oneway(var[3],var[4],var[5])
-    
-    print("Running Kruskal-Wallis H-test")
-    print("Jet domination in July")
-    s_j, p_j = stats.kruskal(var[0],var[1],var[2])
-    
-    print("Jet domination in August")
-    s_a, p_a = stats.kruskal(var[3],var[4],var[5])
-    
-    return [S_j, P_j, S_a, P_a, s_j, p_j, s_a, p_a,]
+def run_studenttest3(dataset_1, dataset_2):
+    mean1 = np.mean(dataset_1, axis=0)
+    mean2 = np.mean(dataset_2, axis=0)
+    std1 = np.std(dataset_1, axis=0)
+    std2 = np.std(dataset_1, axis=0)
+    nobs1 = len(dataset_1)
+    nobs2 = len(dataset_2)
+    t, p = stats.ttest_ind_from_stats(mean1, std1, nobs1, mean2, std2, nobs2, equal_var=True)
+    return p
 
     
 if __name__ == "__main__":
     print("Snow Cover Analysis")
     all_springs = read_data()
-    #climatology("mean")
+#    climatology("mean")
     #climatology("std")
     #trendmaps()
-    #anomalymaps()
+    anomalymaps()
     with open('cluster_years.pickle', 'rb') as f:
         july_c3_dominated, july_c1_dominated, july_neither_dominated, august_c3_dominated, august_c1_dominated, august_neither_dominated = pickle.load(f)
     #compositemaps('mean')
     #compositemaps('std')
     
-       
-    Mays, Junes, Julys, Augusts, all_months = dataset4test()
-    
-    results = np.round(run_ttest(all_months), 3)
-    print("T value   P Value")
-    print(results[0])
-    print(results[1])
-    print(results[2])
-    print(results[3])
-    print(results[4])
-    print(results[5])
-# =============================================================================
+    #p_value_maps()       
+    # =============================================================================
 #     print(len(Mays[0]), Mays[0].shape)
 #     print(len(all_months[0]), all_months[0].shape)
 #     plt.figure()

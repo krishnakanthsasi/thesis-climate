@@ -28,6 +28,7 @@ import seaborn as sns
 from mpl_toolkits.basemap import Basemap
 import matplotlib as mlp
 from scipy import stats
+from matplotlib.colors import DivergingNorm
 
 
 # READING NETCDF FILES
@@ -66,7 +67,7 @@ def read_data():
 # MAKING CLIMATOLOGY PLOTS
     
     
-def climatology(analysis, forcmp=False):
+def climatology(analysis, forcmp=False , alsozonal=False):
     """
     Mean and standard deviation plots are made for surface temperature for the months of June, July
     and August between years 1979-2018
@@ -89,7 +90,11 @@ def climatology(analysis, forcmp=False):
         july_title = "Northern Hemisphere Surface Temperature - Climatology Map for July (1979-2018)"
         august_title = "Northern Hemisphere Surface Temperature - Climatology Map for August (1979-2018)"
         makePlots([June_t, July_t, August_t],[june_title,july_title,august_title],t_min,t_max,delta,colorbar_title)
-    
+        if alsozonal == True:
+            #Plots zonal maps
+            zonalmaps([July_t, August_t], title = 'Mean Northern Hemisphere Surface Temperature(1979-2018) for July and August')
+            return
+            
     #STANDARD DEVIATION
     elif analysis == "std":
         June_t = np.std(dataset_2t_map.t2m[0::3,:,:].values,axis=0)
@@ -109,7 +114,116 @@ def climatology(analysis, forcmp=False):
         makePlots([June_t, July_t, August_t],[june_title,july_title,august_title],t_min,t_max,delta,colorbar_title)
 
 
+# Making zonal maps
 
+def zonalmaps(months, title, subtitles=['July', 'August'], fill=False, allin=False):
+    """
+    Input:months is a list containing all the datasets in lat/lon format and value(ST ) color coded
+    Output:Again a list of months containing datasets in zonal mean/lat format
+    """
+    months_zonal_means = []
+    
+    if fill==False and allin==False:
+        for month in months:
+        # take zonal mean for mean month
+        #print(month.shape)
+            newmonth = np.flip(np.mean(month,axis=1))
+            print(newmonth.shape)
+            months_zonal_means.append(newmonth)
+        xaxis = np.linspace(25.5,90,87)
+        #plot months_zonal_means
+        sns.set()
+        plt.figure()
+        plt.suptitle("Zonal Maps for %s" % title)
+        i = 0
+        
+        for month in months_zonal_means:
+            i += 1
+            plt.subplot(2,1,i)
+            plt.title(subtitles[i-1])
+            plt.plot(xaxis, month)
+            plt.ylabel("Temperature 2m from Surface(in K)")#, fontsize=16)
+        plt.xlabel("Latitude("+u"\N{DEGREE SIGN}"+"N)")#, fontsize=16)
+        
+        plt.show()
+    
+    elif fill==True and allin==False:
+        #plot months_zonal_means
+        months_zonal_means_2 = []
+        i=0
+        for month in months:
+        # take zonal mean for mean month
+        #print(month.shape)
+            newmonth = np.flip(np.mean(month,axis=1))
+            print(newmonth.shape)
+            if i%2==0:        
+                months_zonal_means.append(newmonth) #composite
+            else:
+                months_zonal_means_2.append(newmonth) #climatology
+            i+=1
+            
+        xaxis = np.linspace(25.5,90,87)
+        sns.set()
+        plt.figure()
+        plt.suptitle("Zonal Maps for %s" % title)
+        i = 0
+        
+        for month in months_zonal_means:
+            i += 1
+            plt.subplot(2,1,i)
+            plt.title(subtitles[i-1])
+            plt.plot(xaxis, month, '--r', label='Year with specific jet state')
+            plt.plot(xaxis, months_zonal_means_2[i-1], '-b', label='Climatology')
+            plt.fill_between(xaxis, month, months_zonal_means_2[i-1], where=months_zonal_means_2[i-1] >= month, facecolor='lightskyblue', interpolate=True)
+            plt.fill_between(xaxis, month, months_zonal_means_2[i-1], where=months_zonal_means_2[i-1] <= month, facecolor='indianred', interpolate=True)
+            plt.ylabel("Temperature 2m from Surface(in K)")#, fontsize=16)
+            plt.legend()
+        plt.xlabel("Latitude("+u"\N{DEGREE SIGN}"+"N)")#, fontsize=16)
+        plt.show()
+    
+    elif fill==False and allin==True:
+        # (dj-j, sj-j, nj-j, dj-a, sj-a, nj-a)
+        for month in months:
+            # take zonal mean for mean month
+            #print(month.shape)
+            newmonth = np.flip(np.mean(month,axis=1))
+            print(newmonth.shape)
+            months_zonal_means.append(newmonth)
+        xaxis = np.linspace(25.5,90,87)
+        #plot months_zonal_means
+        sns.set()
+        plt.figure()
+        plt.title("Zonal Maps for %s" % title)
+        i = 0
+        #plt.title(subtitles[i-1])
+          
+        for month in months_zonal_means:
+            i += 1
+            r = (i-1)%3
+            d = int((i-1)/3)
+            if d==0:
+                if r == 0:
+                    print("here")
+                    plt.plot(xaxis, month, 'g-', label=subtitles[i-1])
+                elif r == 1:
+                    plt.plot(xaxis, month, 'g--', label=subtitles[i-1])
+                else:
+                    plt.plot(xaxis, month, 'g*', label=subtitles[i-1])
+            else:
+                if r == 0:
+                    plt.plot(xaxis, month, 'b-', label=subtitles[i-1])
+                elif r == 1:
+                    plt.plot(xaxis, month, 'b--', label=subtitles[i-1])
+                else:
+                    plt.plot(xaxis, month, 'b*', label=subtitles[i-1])
+        
+            plt.ylabel("Temperature 2m from Surface(in K)")#, fontsize=16)
+            
+        plt.xlabel("Latitude("+u"\N{DEGREE SIGN}"+"N)")#, fontsize=16)
+        
+        plt.legend(fontsize=9)
+        plt.show()
+        
 
 # Plotting Function
 def makePlots(datasets, titles, vmin, vmax, delta, colorbar_title, split = 3, sup_title = [],res=2, color='seismic'):
@@ -135,7 +249,7 @@ def makePlots(datasets, titles, vmin, vmax, delta, colorbar_title, split = 3, su
         
         m = Basemap(projection='cyl',llcrnrlat=25,urcrnrlat=90,\
                 llcrnrlon=0,urcrnrlon=360,resolution='c')
-        m.imshow(datasets[i], origin ='upper', vmin = vmin, vmax = vmax, cmap=colors)
+        m.imshow(datasets[i], norm=DivergingNorm(0.05), origin ='upper', vmin = vmin, vmax = vmax, cmap=colors)
         m.drawcoastlines()
 #        t_s = ticks[0::res]
 #        if t_s[-1]==ticks[-1]:
@@ -394,17 +508,49 @@ def compositemaps(analysis):
         
         #Plotting
         #C1-Dominant
-        makePlots([July_jc1t-July_t, August_jc1t-August_t],[july_jc1,august_jc1],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
-        makePlots([July_ac1t-July_t, August_ac1t-August_t],[july_ac1,august_ac1],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
+#        makePlots([July_jc1t-July_t, August_jc1t-August_t],[july_jc1,august_jc1],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
+#        makePlots([July_ac1t-July_t, August_ac1t-August_t],[july_ac1,august_ac1],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
+        
+        #zonal maps 
+#        zonalmaps([July_jc1t, July_t, August_jc1t, August_t], title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for July and August",fill=True)
+#        zonalmaps([July_ac1t, July_t, August_ac1t, August_t], title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for July and August",fill=True)
+        #all Julys
+        zonalmaps([July_jc1t-July_t, July_jc3t-July_t, July_jnt-July_t, July_ac1t-July_t, July_ac3t-July_t, July_ant-July_t], 
+                  title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for July", \
+                  subtitles=[july_jc1,july_jc3,july_jn,july_ac1,july_ac3,july_an],fill=False, allin=True)
+        
+        #all Augusts
+        zonalmaps([August_jc1t-August_t, August_jc3t-August_t, August_jnt-August_t, August_ac1t-August_t, August_ac3t-August_t, August_ant-August_t], 
+                  title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for August", \
+                  subtitles=[august_jc1,august_jc3,august_jn,august_ac1,august_ac3,august_an],fill=False, allin=True)
         
         #C3-Dominant
-        makePlots([July_jc3t-July_t, August_jc3t-August_t],[july_jc3,august_jc3],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
-        makePlots([July_ac3t-July_t, August_ac3t-August_t],[july_ac3,august_ac3],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
+#        makePlots([July_jc3t-July_t, August_jc3t-August_t],[july_jc3,august_jc3],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
+#        makePlots([July_ac3t-July_t, August_ac3t-August_t],[july_ac3,august_ac3],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
+        
+        #zonal maps 
+#        zonalmaps([July_jc3t, July_t, August_jc3t, August_t], title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for July and August",fill=True)
+#        zonalmaps([July_ac3t, July_t, August_ac3t, August_t], title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for July and August",fill=True)
         
         #Neither-Dominant
-        makePlots([July_jnt-July_t, August_jnt-August_t],[july_jn,august_jn],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
-        makePlots([July_ant-July_t, August_ant-August_t],[july_an,august_an],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
-
+#        makePlots([July_jnt-July_t, August_jnt-August_t],[july_jn,august_jn],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
+#        makePlots([July_ant-July_t, August_ant-August_t],[july_an,august_an],t_min,t_max,delta,colorbar_title,split=2,sup_title=jul_aug_title)
+        
+        #zonal maps 
+#        zonalmaps([July_jnt, July_t, August_jnt, August_t], title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for July and August",fill=True)
+#        zonalmaps([July_ant, July_t, August_ant, August_t], title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for July and August",fill=True)
+        
+       
+#        all in one
+        
+#        zonalmaps([July_jc1t-July_t, August_jc1t-August_t, July_ac1t-July_t, August_ac1t-August_t, July_jc3t-July_t, August_jc3t-August_t, July_ac3t-July_t, August_ac3t-August_t, July_jnt-July_t, August_jnt-August_t, July_ant-July_t, August_ant-August_t], 
+#                  title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for July and August", \
+#                  subtitles=[july_jc1,august_jc1,july_ac1,august_ac1,july_jc3,august_jc3,july_ac3,august_ac3,july_jn,august_jn,july_an,august_an],fill=False, allin=True)
+        
+        #flipped
+#        zonalmaps([July_jc1t-July_t, August_jc1t-August_t, July_ac1t-July_t, August_ac1t-August_t, July_jc3t-July_t, August_jc3t-August_t, July_ac3t-July_t, August_ac3t-August_t, July_jnt-July_t, August_jnt-August_t, July_ant-July_t, August_ant-August_t], 
+#                  title="Mean Surface Temperature during specific years relative to Mean Surface Temperature(1979-2018) for July and August", \
+#                  subtitles=[july_jc1,august_jc1,july_ac1,august_ac1,july_jc3,august_jc3,july_ac3,august_ac3,july_jn,august_jn,july_an,august_an],fill=False, allin=True, flip=True)
     elif analysis == 'std':
         # july_c1_dominated    
         year = np.multiply(np.subtract(july_c1_dominated,1979),3)
@@ -515,7 +661,6 @@ def compositemaps(analysis):
 
 
 
-
 # RUNNING STATISTICAL TEST
     
 def dataset4test():
@@ -545,39 +690,143 @@ def dataset4test():
         all_months_grps.append(all_months)
     return np.asarray(Julys), np.asarray(Augusts), np.asarray(all_months_grps)
 
-def run_ttest(variable):
-    """
-    Runs two sided t-test comparing a dataset of all months
-    """
-    print("Running t-test\n")
-    result = []
-    print("DJ-July dominated years vs SJ-July dominated years")
-    t1, p1 = np.round(stats.ttest_ind(variable[0],variable[1],axis = 0, equal_var = True), 3)
-    result.append([t1,p1])
-    print("SJ-July dominated years vs N-July dominated years")
-    t2, p2 = np.round(stats.ttest_ind(variable[1],variable[2],axis = 0, equal_var = True), 3)
-    result.append([t2,p2])
-    print("N-July dominated years vs DJ-July dominated years")
-    t3, p3 = np.round(stats.ttest_ind(variable[2],variable[0],axis = 0, equal_var = True), 3)    
-    result.append([t3,p3])
-    
-    print("DJ-August dominated years vs SJ-August dominated years")
-    t4, p4 = np.round(stats.ttest_ind(variable[3],variable[4],axis = 0, equal_var = True), 3)
-    result.append([t4,p4])
-    print("SJ-August dominated years vs N-August dominated years")
-    t5, p5 = np.round(stats.ttest_ind(variable[4],variable[5],axis = 0, equal_var = True), 3)
-    result.append([t5,p5])
-    print("N-August dominated years vs DJ-August dominated years")    
-    t6, p6 = np.round(stats.ttest_ind(variable[5],variable[3],axis = 0, equal_var = True), 3)    
-    result.append([t6,p6])
-    
-    return result
 
-"""
-Only remaining section is running statistical test
-and standard deviation in composites, importing list of each relevant year.
-"""    
+def p_value_maps():
+    """
+    This function in intended to produce a p value map comparing July of C1 dominated July
+    """
+    # creating the comparison datasets
+    
+        # july_c1_dominated:
+    year = np.multiply(np.subtract(july_c1_dominated,1979),3)
+    indx_july = np.add(1, year)
+    indx_august = np.add(2, year)
+    July_jc1t = dataset_2t_map.t2m[indx_july,:,:].values 
+    August_jc1t = dataset_2t_map.t2m[indx_august,:,:].values
+                
+        # july_c3_dominated:
+    year = np.multiply(np.subtract(july_c3_dominated,1979),3)
+    indx_july = np.add(1, year)
+    indx_august = np.add(2, year)
+    July_jc3t = dataset_2t_map.t2m[indx_july,:,:].values 
+    August_jc3t = dataset_2t_map.t2m[indx_august,:,:].values
+    
+    
+        # july_neither_dominated:
+    year = np.multiply(np.subtract(july_neither_dominated,1979),3)
+    indx_july = np.add(1, year)
+    indx_august = np.add(2, year)
+    July_jnt = dataset_2t_map.t2m[indx_july,:,:].values 
+    August_jnt = dataset_2t_map.t2m[indx_august,:,:].values
+     
+        # august_c1_dominated:
+    year = np.multiply(np.subtract(august_c1_dominated,1979),3)
+    indx_july = np.add(1, year)
+    indx_august = np.add(2, year)
+    July_ac1t = dataset_2t_map.t2m[indx_july,:,:].values 
+    August_ac1t = dataset_2t_map.t2m[indx_august,:,:].values
+                
+        # august_c3_dominated:
+    year = np.multiply(np.subtract(august_c3_dominated,1979),3)
+    indx_july = np.add(1, year)
+    indx_august = np.add(2, year)
+    July_ac3t = dataset_2t_map.t2m[indx_july,:,:].values 
+    August_ac3t = dataset_2t_map.t2m[indx_august,:,:].values
+        
+        # august_neither_dominated:
+    year = np.multiply(np.subtract(august_neither_dominated,1979),3)
+    indx_july = np.add(1, year)
+    indx_august = np.add(2, year)
+    July_ant = dataset_2t_map.t2m[indx_july,:,:].values 
+    August_ant = dataset_2t_map.t2m[indx_august,:,:].values
+    
+    # DJ-J vs SJ-J
+    
+    July_jc1c3 = run_studenttest3(July_jc1t, July_jc3t)
+    August_jc1c3 = run_studenttest3(August_jc1t, August_jc3t)
+    
+    # SJ-J vs NJ-J
+    
+    July_jc3cn = run_studenttest3(July_jc3t, July_jnt)
+    August_jc3cn = run_studenttest3(August_jc3t, August_jnt)
+    
+    # NJ-J vs DJ-J    
+    
+    July_jcnc1 = run_studenttest3(July_jnt, July_jc1t)
+    August_jcnc1 = run_studenttest3(August_jnt, August_jc1t)
+    
+    
+    # DJ-A vs SJ-A
+    
+    July_ac1c3 = run_studenttest3(July_ac1t, July_ac3t)
+    August_ac1c3 = run_studenttest3(August_ac1t, August_ac3t)
+    
+    # SJ-A vs NJ-A
+    
+    July_ac3cn = run_studenttest3(July_ac3t, July_ant)
+    August_ac3cn = run_studenttest3(August_ac3t, August_ant)
+    
+    # NJ-A vs DJ-A    
+    
+    July_acnc1 = run_studenttest3(July_ant, July_ac1t)
+    August_acnc1 = run_studenttest3(August_ant, August_ac1t)
+    
+    
+    # Plotting parameters
+    p_max, p_min, delta = 1, 0, 0.005
+    colorbar_title = " "
+    
+    # more Plotting parameters
+    jul_aug_title_DJSJ_J = "P value map from Student t-test (Years with domination of double jet in July vs years with domination of single jet in July)"
+    jul_aug_title_SJNJ_J = "P value map from Student t-test (Years with domination of single jet in July vs years with domination of neither jet in July)"
+    jul_aug_title_NJDJ_J = "P value map from Student t-test (Years with domination of neither jet in July vs years with domination of double jet in July)"
+    jul_aug_title_DJSJ_A = "P value map from Student t-test (Years with domination of double jet in August vs years with domination of single jet in August)"
+    jul_aug_title_SJNJ_A = "P value map from Student t-test (Years with domination of single jet in August vs years with domination of neither jet in August)"
+    jul_aug_title_NJDJ_A = "P value map from Student t-test (Years with domination of neither jet in August vs years with domination of double jet in August)"
+    
+    subtitles = ["July", "August"]
+    
+    #Plotting
+    #Comparison of years in July-Domination
+    makePlots([July_jc1c3, August_jc1c3],subtitles,p_min,p_max,delta,colorbar_title,split=2,res=8,sup_title=jul_aug_title_DJSJ_J)#,color="Blues")
+    makePlots([July_jc3cn, August_jc3cn],subtitles,p_min,p_max,delta,colorbar_title,split=2,res=8,sup_title=jul_aug_title_SJNJ_J)
+    makePlots([July_jcnc1, August_jcnc1],subtitles,p_min,p_max,delta,colorbar_title,split=2,res=8,sup_title=jul_aug_title_NJDJ_J)
+    
+    #Comparison of years in August-Domination
+    makePlots([July_ac1c3, August_ac1c3],subtitles,p_min,p_max,delta,colorbar_title,split=2,res=8,sup_title=jul_aug_title_DJSJ_A)
+    makePlots([July_ac3cn, August_ac3cn],subtitles,p_min,p_max,delta,colorbar_title,split=2,res=8,sup_title=jul_aug_title_SJNJ_A)
+    makePlots([July_acnc1, August_acnc1],subtitles,p_min,p_max,delta,colorbar_title,split=2,res=8,sup_title=jul_aug_title_NJDJ_A)
+        
+    
+def run_studenttest1(dataset_1, dataset_2):
+    if len(dataset_1) > len(dataset_2):
+        indice = random.randint(0,14)
+        m_dataset_1 = np.delete(dataset_1,indice,0)
+        t, p = stats.ttest_rel(m_dataset_1, dataset_2, axis=0)
+    elif len(dataset_1) < len(dataset_2):
+        indice = random.randint(0,14)
+        m_dataset_2 = np.delete(dataset_2,indice,0)
+        t, p = stats.ttest_rel(dataset_1, m_dataset_2, axis=0)
+    else:
+        t, p = stats.ttest_rel(dataset_1, dataset_2, axis=0)
+    return p
+        
+    
+def run_studenttest2(dataset_1, dataset_2):
+    t, p = stats.ttest_ind(dataset_1, dataset_2, axis = 0, equal_var = False)
+    return p
 
+def run_studenttest3(dataset_1, dataset_2):
+    mean1 = np.mean(dataset_1, axis=0)
+    mean2 = np.mean(dataset_2, axis=0)
+    std1 = np.std(dataset_1, axis=0)
+    std2 = np.std(dataset_1, axis=0)
+    nobs1 = len(dataset_1)
+    nobs2 = len(dataset_2)
+    t, p = stats.ttest_ind_from_stats(mean1, std1, nobs1, mean2, std2, nobs2, equal_var=False)
+    return p
+     
+            
     
 if __name__ == "__main__":
     
@@ -587,24 +836,26 @@ if __name__ == "__main__":
     with open('cluster_years.pickle', 'rb') as f:
         july_c3_dominated, july_c1_dominated, july_neither_dominated, august_c3_dominated, august_c1_dominated, august_neither_dominated = pickle.load(f)
     
-    #climatology("mean")
+    #climatology("mean",alsozonal=True)
     #climatology("std")
     #trendmaps()
     #anomalymaps()
     #compositemaps('mean')
     #compositemaps('std')
-    
-    Julys, Augusts, all_months = dataset4test()
-    
-    results = np.round(run_ttest(all_months), 3)
-    print("T value   P Value")
-    print(results[0])
-    print(results[1])
-    print(results[2])
-    print(results[3])
-    print(results[4])
-    print(results[5])
-# =============================================================================
+    p_value_maps()
+    #print(sample_dataset.shape)
+    #print(p1.shape)
+#    Julys, Augusts, all_months = dataset4test()
+#    
+#    results = np.round(run_ttest(all_months), 3)
+#    print("T value   P Value")
+#    print(results[0])
+#    print(results[1])
+#    print(results[2])
+#    print(results[3])
+#    print(results[4])
+#    print(results[5])
+## =============================================================================
 #     print(Julys.shape, Augusts.shape, all_months.shape)
 #     print(Julys[0].shape, Augusts[0].shape, all_months[0].shape)
 #     plt.figure()
